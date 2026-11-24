@@ -4,3 +4,4 @@ members = ["crates/evntwire", "crates/evntwire-config", "crates/evntwire-gui"]
 
 [workspace.package]
 edition = "2024"
+license = "GPL-2.0-only"

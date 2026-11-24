@@ -2,6 +2,8 @@
 
 [Русская версия](README.ru.md)
 
+[Contributing](CONTRIBUTING.md) · [GPL-2.0-only](LICENSE)
+
 evntwire connects event sources to configurable actions on Linux.
 
 The workspace contains `crates/evntwire`, `crates/evntwire-config`, and the GUI placeholder `crates/evntwire-gui`.

@@ -4,6 +4,7 @@ pkgrel=1
 pkgdesc='Linux event routing daemon'
 arch=('x86_64' 'aarch64')
 url='https://github.com/AlexKletn/evntwire'
+license=('GPL-2.0-only')
 depends=('glibc' 'libgcc')
 makedepends=('rust')
 checkdepends=('coreutils')
@@ -28,4 +29,5 @@ check() {
 
 package() {
     install -Dm755 "$srcdir/target/release/evntwire" "$pkgdir/usr/bin/evntwire"
+    install -Dm644 "$startdir/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }

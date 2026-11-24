@@ -2,6 +2,8 @@
 
 [English version](README.md)
 
+[Как участвовать](CONTRIBUTING.ru.md) · [GPL-2.0-only](LICENSE)
+
 evntwire связывает источники событий с настраиваемыми действиями в Linux.
 
 В рабочем пространстве есть `crates/evntwire`, `crates/evntwire-config` и заглушка графического интерфейса `crates/evntwire-gui`.
