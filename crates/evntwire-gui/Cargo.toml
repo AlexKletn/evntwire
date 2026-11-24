@@ -1,0 +1,6 @@
+[package]
+name = "evntwire-gui"
+version = "0.1.0"
+edition.workspace = true
+description = "Placeholder for the evntwire GUI"
+publish = false
