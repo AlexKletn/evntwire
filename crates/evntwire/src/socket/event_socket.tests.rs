@@ -40,6 +40,8 @@ fn accepts_registered_events_round_trips_state_and_removes_socket_on_drop() {
         combinations: Vec::new(),
         gestures: Vec::new(),
         physical_buttons: Vec::new(),
+        inputs: Default::default(),
+        physical_switches: Vec::new(),
         repeats: Vec::new(),
     };
     let mut router = Router::new(&config).unwrap();

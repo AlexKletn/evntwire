@@ -4,7 +4,7 @@ use std::{
     io,
     os::fd::AsFd,
     path::{Path, PathBuf},
-    time::Instant,
+    time::{Duration, Instant},
 };
 
 use evntwire::{EventSocket, Router, VirtualKeyboard};
@@ -14,7 +14,7 @@ use nix::{
     poll::{PollFd, PollFlags, poll},
 };
 
-use super::command_pool::CommandPool;
+use super::{command_pool::CommandPool, input::InputDevices};
 
 const SOCKET_BATCH_SIZE: usize = 64;
 const MAX_POLL_MS: u16 = 1000;
@@ -42,10 +42,26 @@ pub fn run(mut args: impl Iterator<Item = OsString>) -> Result<(), Box<dyn Error
     let mut socket = EventSocket::bind(Path::new(&socket_path))?;
     let mut keyboard = VirtualKeyboard::new(&config)?;
     let mut commands = CommandPool::default();
+    let mut input = InputDevices::new(&config)?;
+    let mut next_discovery = Instant::now();
 
     loop {
         commands.reap();
-        if socket_ready(&socket, router.deadline())? {
+        let now = Instant::now();
+        if now >= next_discovery {
+            input.discover(&mut router);
+            next_discovery = now + Duration::from_secs(1);
+        }
+        let deadline = router
+            .deadline()
+            .map_or(next_discovery, |time| time.min(next_discovery));
+        let (socket_ready, input_ready) = wait_for_input(&socket, &input, deadline)?;
+        execute(
+            input.receive(input_ready, &mut router),
+            &mut commands,
+            &mut keyboard,
+        );
+        if socket_ready {
             // Bound the batch so a busy socket cannot starve routing timers.
             for _ in 0..SOCKET_BATCH_SIZE {
                 match socket.receive(&mut router, Instant::now()) {
@@ -59,25 +75,34 @@ pub fn run(mut args: impl Iterator<Item = OsString>) -> Result<(), Box<dyn Error
     }
 }
 
-fn socket_ready(socket: &EventSocket, deadline: Option<Instant>) -> io::Result<bool> {
-    let now = Instant::now();
-    let timeout_ms = deadline.map_or(MAX_POLL_MS, |deadline| {
-        deadline
-            .saturating_duration_since(now)
-            .as_nanos()
-            .div_ceil(1_000_000)
-            .min(u128::from(MAX_POLL_MS)) as u16
-    });
-    let mut descriptors = [PollFd::new(socket.as_fd(), PollFlags::POLLIN)];
+fn wait_for_input(
+    socket: &EventSocket,
+    input: &InputDevices<'_>,
+    deadline: Instant,
+) -> io::Result<(bool, Vec<PollFlags>)> {
+    let timeout_ms = deadline
+        .saturating_duration_since(Instant::now())
+        .as_nanos()
+        .div_ceil(1_000_000)
+        .min(u128::from(MAX_POLL_MS)) as u16;
+    let mut descriptors = std::iter::once(PollFd::new(socket.as_fd(), PollFlags::POLLIN))
+        .chain(input.poll_descriptors())
+        .collect::<Vec<_>>();
     match poll(&mut descriptors, timeout_ms) {
         Ok(_) => {
-            let events = descriptors[0].revents().unwrap_or_else(PollFlags::empty);
-            if events.intersects(PollFlags::POLLERR | PollFlags::POLLHUP | PollFlags::POLLNVAL) {
+            let socket_flags = descriptors[0].revents().unwrap_or_else(PollFlags::empty);
+            if socket_flags
+                .intersects(PollFlags::POLLERR | PollFlags::POLLHUP | PollFlags::POLLNVAL)
+            {
                 return Err(io::Error::other("Event socket poll failed"));
             }
-            Ok(events.contains(PollFlags::POLLIN))
+            let input_ready = descriptors[1..]
+                .iter()
+                .map(|descriptor| descriptor.revents().unwrap_or_else(PollFlags::empty))
+                .collect();
+            Ok((socket_flags.contains(PollFlags::POLLIN), input_ready))
         }
-        Err(Errno::EINTR) => Ok(false),
+        Err(Errno::EINTR) => Ok((false, Vec::new())),
         Err(error) => Err(error.into()),
     }
 }

@@ -19,3 +19,42 @@ evntwire связывает источники событий с настраи�
 ```sh
 cargo test --workspace --locked
 ```
+
+## Устройства ввода Linux
+
+Evntwire подключает устройства evdev по точному имени, в том числе после
+старта. Чтение не захватывает устройство эксклюзивно. Для кнопки можно
+указать `source`, по умолчанию используется имя устройства. Для
+переключателя демон читает начальное состояние при подключении, обновляет
+его по событиям и сбрасывает при отключении устройства.
+
+```toml
+[[physical_button]]
+device_name = "My gesture device"
+source = "gestures"
+key = "KEY_F24"
+button = "tilt"
+
+[[physical_switch]]
+device_name = "My cover device"
+switch = "SW_LID"
+state = "lid.closed"
+```
+
+Для drop-in-файлов используйте именованные группы вроде
+`[[input.sensors.button]]` и `[[input.sensors.switch]]` с теми же полями.
+Задавайте отдельную группу для каждого компонента. Таблицы TOML
+объединяются, а массивы верхнего уровня `[[physical_button]]` и
+`[[physical_switch]]` заменяют предыдущие массивы с тем же именем.
+
+`[[input.sensors.gesture]]` сопоставляет значение `EV_MSC / MSC_GESTURE`
+от указанного устройства с именем кнопки. В привязке для этой кнопки
+укажите `event = "gesture"`.
+
+```toml
+[[input.sensors.gesture]]
+device_name = "My gesture device"
+source = "sensors"
+value = 2
+button = "tilt"
+```

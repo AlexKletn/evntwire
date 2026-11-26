@@ -101,6 +101,8 @@ fn key(code: &str) -> Action {
 fn config() -> Config {
     Config {
         physical_buttons: Vec::new(),
+        inputs: Default::default(),
+        physical_switches: Vec::new(),
         bindings: [
             ("press", "KEY_PRESS"),
             ("release", "KEY_RELEASE"),

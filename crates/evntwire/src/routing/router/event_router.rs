@@ -110,6 +110,18 @@ impl<'a> Router<'a> {
         }
     }
 
+    pub fn cancel_button(&mut self, source: &str, button: &str) {
+        let id = (source.to_owned(), button.to_owned());
+        if let Some(state) = self.buttons.get_mut(&id) {
+            state.consume();
+            state.consumed = false;
+            state.held_since = None;
+            if state.gesture.is_none() && state.repeat.is_none() {
+                self.buttons.remove(&id);
+            }
+        }
+    }
+
     pub fn deadline(&self) -> Option<Instant> {
         self.buttons
             .values()

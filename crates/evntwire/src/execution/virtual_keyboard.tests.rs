@@ -43,6 +43,8 @@ fn config(action: Action) -> Config {
             when: Default::default(),
         }],
         physical_buttons: Vec::new(),
+        inputs: Default::default(),
+        physical_switches: Vec::new(),
         combinations: Vec::new(),
         gestures: Vec::new(),
         repeats: Vec::new(),
